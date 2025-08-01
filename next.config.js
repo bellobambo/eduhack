@@ -1,5 +1,9 @@
 const nextConfig = {
-  /* config options here */
+  experimental: {
+    outputFileTracingExcludes: {
+      "*": ["./test/**/*", "./**/test/**/*"],
+    },
+  },
 };
 
 export default nextConfig;
