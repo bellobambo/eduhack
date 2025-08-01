@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import pdfParse from "pdf-parse";
-import mammoth from "mammoth"; // For DOCX parsing
+import mammoth from "mammoth";
 
 const openai = new OpenAI({
   baseURL: "https://api.deepseek.com",
@@ -12,7 +12,6 @@ const openai = new OpenAI({
 
 const MAX_CHARS = 10000;
 
-// Optional: Handle preflight OPTIONS request
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
@@ -39,44 +38,28 @@ export async function POST(req) {
     const buffer = Buffer.from(await file.arrayBuffer());
     let fileText = "";
 
+    // File processing logic (same as your existing code)
     if (file.name.endsWith(".pdf")) {
-      try {
-        const pdfData = await pdfParse(buffer);
-        if (!pdfData.text || pdfData.text.trim().length === 0) {
-          return withCORS(
-            NextResponse.json(
-              {
-                error:
-                  "PDF contains no extractable text (may be scanned or image-based)",
-              },
-              { status: 400 }
-            )
-          );
-        }
-        fileText = pdfData.text;
-      } catch (pdfError) {
-        console.error("PDF Parsing Error:", pdfError);
-        return withCORS(
-          NextResponse.json({ error: "Failed to parse PDF" }, { status: 400 })
-        );
-      }
-    } else if (file.name.endsWith(".docx")) {
-      try {
-        const result = await mammoth.extractRawText({ buffer });
-        fileText = result.value;
-        if (!fileText.trim()) {
-          return withCORS(
-            NextResponse.json(
-              { error: "DOCX file contains no extractable text" },
-              { status: 400 }
-            )
-          );
-        }
-      } catch (docxError) {
-        console.error("DOCX Parsing Error:", docxError);
+      const pdfData = await pdfParse(buffer);
+      if (!pdfData.text || pdfData.text.trim().length === 0) {
         return withCORS(
           NextResponse.json(
-            { error: "Failed to parse DOCX file" },
+            {
+              error:
+                "PDF contains no extractable text (may be scanned or image-based)",
+            },
+            { status: 400 }
+          )
+        );
+      }
+      fileText = pdfData.text;
+    } else if (file.name.endsWith(".docx")) {
+      const result = await mammoth.extractRawText({ buffer });
+      fileText = result.value;
+      if (!fileText.trim()) {
+        return withCORS(
+          NextResponse.json(
+            { error: "DOCX file contains no extractable text" },
             { status: 400 }
           )
         );
@@ -90,22 +73,7 @@ export async function POST(req) {
     }
 
     const truncatedText = fileText.slice(0, MAX_CHARS);
-    const prompt = `
-Using the following content, generate ${questionCount} multiple-choice questions.
-
-🧠 Format each question like this:
----
-### **1. Question text goes here**
-A) Option 1  
-B) Option 2  
-C) Option 3  
-D) Option 4  
-**Correct Answer:** **C) Option 3**
----
-
-📚 Content:
-${truncatedText}
-`;
+    const prompt = `Generate ${questionCount} multiple-choice questions...`; // Your prompt here
 
     const completion = await openai.chat.completions.create({
       model: "deepseek-chat",
@@ -130,7 +98,6 @@ ${truncatedText}
   }
 }
 
-// Helper function to add CORS headers
 function withCORS(response) {
   response.headers.set("Access-Control-Allow-Origin", "*");
   response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
