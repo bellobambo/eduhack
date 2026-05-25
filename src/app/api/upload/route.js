@@ -1,14 +1,9 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth"; // For DOCX parsing
-
-const openai = new OpenAI({
-  baseURL: "https://api.deepseek.com",
-  apiKey: process.env.NEXT_PUBLIC_DEEPSEEKAPI,
-});
+import { getOpenAIClient, OPENAI_MODEL } from "../_utils/openai";
 
 const MAX_CHARS = 10000;
 
@@ -29,6 +24,9 @@ export async function POST(req) {
     const formData = await req.formData();
     const file = formData.get("file");
     const questionCount = parseInt(formData.get("questionCount")) || 5;
+    const description = normalizeText(
+      formData.get("description") || formData.get("context")
+    );
 
     if (!file || typeof file.arrayBuffer !== "function") {
       return withCORS(
@@ -92,6 +90,7 @@ export async function POST(req) {
     const truncatedText = fileText.slice(0, MAX_CHARS);
     const prompt = `
 Using the following content, generate ${questionCount} multiple-choice questions.
+${description ? `\nAdditional teacher/student context: ${description}\n` : ""}
 
 🧠 Format each question like this:
 ---
@@ -107,8 +106,9 @@ D) Option 4
 ${truncatedText}
 `;
 
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
-      model: "deepseek-chat",
+      model: OPENAI_MODEL,
       messages: [
         {
           role: "system",
@@ -124,6 +124,15 @@ ${truncatedText}
     );
   } catch (err) {
     console.error("Upload error:", err);
+    if (err.message === "OPENAI_API_KEY is not configured") {
+      return withCORS(
+        NextResponse.json(
+          { error: "OpenAI API key is not configured" },
+          { status: 500 }
+        )
+      );
+    }
+
     return withCORS(
       NextResponse.json({ error: "Failed to process request" }, { status: 500 })
     );
@@ -136,4 +145,8 @@ function withCORS(response) {
   response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   response.headers.set("Access-Control-Allow-Headers", "Content-Type");
   return response;
+}
+
+function normalizeText(value) {
+  return typeof value === "string" ? value.trim() : "";
 }

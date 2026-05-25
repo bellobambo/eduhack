@@ -2,6 +2,14 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Create a local env file with your OpenAI key:
+
+```bash
+OPENAI_API_KEY=your_key_here
+# Optional: override the default model
+OPENAI_MODEL=gpt-4.1-mini
+```
+
 First, run the development server:
 
 ```bash
@@ -15,6 +23,65 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Endpoints
+
+### `GET /`
+
+Shows a simple documentation page for users. It lists the available endpoints,
+what each endpoint does, what it accepts, and what it returns. It also includes
+an upload tester for the question generation endpoint.
+
+### `POST /api/upload`
+
+Uploads study material and generates multiple-choice exam questions from it.
+
+Accepts form data:
+
+```txt
+file: File                    # required, .txt/.pdf/.docx
+questionCount: 5              # optional, defaults to 5
+description: "Week 3 biology" # optional context for the uploaded file
+```
+
+`context` is also accepted as an alias for `description`.
+
+Returns:
+
+```json
+{
+  "result": "Generated multiple-choice questions..."
+}
+```
+
+### `POST /api/explain`
+
+Explains a student's answer with short AI tutor feedback.
+
+Accepts JSON:
+
+```json
+{
+  "question": "What is photosynthesis?",
+  "selectedAnswer": "Plants taking in oxygen",
+  "correctAnswer": "Plants converting light energy into chemical energy",
+  "context": "Optional lesson notes or topic context"
+}
+```
+
+`answer` is also accepted as an alias for `selectedAnswer`.
+
+It returns:
+
+```json
+{
+  "explanation": "..."
+}
+```
+
+### `OPTIONS /api/upload` and `OPTIONS /api/explain`
+
+Supports CORS preflight requests for browser clients.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
