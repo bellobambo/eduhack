@@ -5,6 +5,7 @@ import { useState } from "react";
 export default function UploadForm() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [questionCount, setQuestionCount] = useState(5);
+  const [description, setDescription] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -45,6 +46,7 @@ export default function UploadForm() {
     const formData = new FormData();
     formData.append("file", uploadedFile);
     formData.append("questionCount", questionCount.toString());
+    formData.append("description", description);
 
     try {
       const res = await fetch("/api/upload", {
@@ -93,6 +95,18 @@ export default function UploadForm() {
           value={questionCount}
           onChange={(e) => setQuestionCount(Number(e.target.value))}
           className="w-full border rounded-md p-2"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="block font-medium text-gray-700">
+          Description or Context
+        </label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={4}
+          placeholder="Example: Week 3 biology lesson on photosynthesis"
+          className="w-full resize-y rounded-md border p-2"
         />
       </div>
       {error && <p className="text-red-600">{error}</p>}
